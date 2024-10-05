@@ -14,22 +14,22 @@ function download_and_install {
     local install_path=$4
 
     # URL에서 파일 다운로드
-    wget $url
+    wget $url -O /root/$tar_file
     if [ $? -ne 0 ]; then
         echo -e "${RED}다운로드 실패: $url${NC}"
         exit 1
     fi
 
     # 다운로드 받은 파일 압축 해제
-    tar -xzvf $tar_file
+    tar -xzvf /root/$tar_file -C /root/
     if [ $? -ne 0 ]; then
-        echo -e "${RED}압축 해제 실패: $tar_file${NC}"
+        echo -e "${RED}압축 해제 실패: /root/$tar_file${NC}"
         exit 1
     fi
 
     # 설치 경로 확인 및 생성 후 파일 복사
     [ ! -d "$install_path" ] && mkdir -p $install_path
-    sudo cp $binary_name $install_path
+    sudo cp /root/$binary_name $install_path
     if [ $? -ne 0 ]; then
         echo -e "${RED}파일 복사 실패: $binary_name${NC}"
         exit 1
