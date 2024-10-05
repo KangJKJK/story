@@ -62,7 +62,7 @@ source ~/.bash_profile
 
 # Story-Geth 바이너리 다운로드 및 설치
 echo -e "${YELLOW}Story-Geth 바이너리 다운로드 중...${NC}"
-download_and_install "https://story-geth-binaries.s3.us-west-1.amazonaws.com/geth-public/geth-linux-arm64-0.9.3-b224fdf.tar.gz" "geth-linux-arm64-0.9.3-b224fdf.tar.gz" "story-geth" "$HOME/go/bin"
+download_and_install "https://story-geth-binaries.s3.us-west-1.amazonaws.com/geth-public/geth-linux-arm-0.9.3-b224fdf.tar.gz" "geth-linux-arm-0.9.3-b224fdf.tar.gz" "story-geth" "$HOME/go/bin"
 
 # Story 바이너리 다운로드 및 설치
 echo -e "${YELLOW}Story 바이너리 다운로드 중...${NC}"
