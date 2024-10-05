@@ -29,7 +29,7 @@ function download_and_install {
 
     # 설치 경로 확인 및 생성 후 파일 복사
     [ ! -d "$install_path" ] && mkdir -p $install_path
-    sudo cp "/root/$binary_name" "$install_path"
+    sudo cp "/root/${tar_file%.tar.gz}/$binary_name" "$install_path"
     if [ $? -ne 0 ]; then
         echo -e "${RED}파일 복사 실패: $binary_name${NC}"
         exit 1
