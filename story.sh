@@ -21,7 +21,7 @@ function download_and_install {
     fi
 
     # 다운로드 받은 파일 압축 해제
-    tar -xzvf /root/$tar_file -C /root/
+    tar -xzvf /root/$tar_file -C
     if [ $? -ne 0 ]; then
         echo -e "${RED}압축 해제 실패: /root/$tar_file${NC}"
         exit 1
