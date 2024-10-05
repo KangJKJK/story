@@ -58,11 +58,11 @@ source ~/.bash_profile
 
 # Story-Geth 바이너리 다운로드 및 설치
 echo -e "${YELLOW}Story-Geth 바이너리 다운로드 중...${NC}"
-download_and_install "https://story-geth-binaries.s3.us-west-1.amazonaws.com/geth-public/geth-linux-amd64-0.9.2-ea9f0d2.tar.gz" "geth-linux-amd64-0.9.2-ea9f0d2.tar.gz" "geth-linux-amd64-0.9.2-ea9f0d2/geth" "$HOME/go/bin/story-geth"
+download_and_install "https://github.com/piplabs/story-geth/archive/refs/tags/v0.9.3.tar.gz" "story-geth-0.9.3.tar.gz" "story-geth-0.9.3.tar.gz/geth" "$HOME/go/bin/story-geth"
 
 # Story 바이너리 다운로드 및 설치
 echo -e "${YELLOW}Story 바이너리 다운로드 중...${NC}"
-download_and_install "https://story-geth-binaries.s3.us-west-1.amazonaws.com/story-public/story-linux-amd64-0.9.11-2a25df1.tar.gz" "story-linux-amd64-0.9.11-2a25df1.tar.gz" "story-linux-amd64-0.9.11-2a25df1/story" "$HOME/go/bin/story"
+download_and_install "https://story-geth-binaries.s3.us-west-1.amazonaws.com/story-public/story-linux-arm64-0.11.0-aac4bfe.tar.gz" "story-linux-arm64-0.11.0-aac4bfe.tar.gz" "story-linux-arm64-0.11.0-aac4bfe/story" "$HOME/go/bin/story"
 
 # Iliad 노드 초기화
 echo -e "${GREEN}노드 초기화 중... 사용할 모니커 이름을 입력해주세요:${NC}"
