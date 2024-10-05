@@ -29,7 +29,7 @@ function download_and_install {
 
     # 설치 경로 확인 및 생성 후 파일 복사
     [ ! -d "$install_path" ] && mkdir -p $install_path
-    sudo cp $binary_name $install_path
+    sudo cp "/root/$binary_name" "$install_path"
     if [ $? -ne 0 ]; then
         echo -e "${RED}파일 복사 실패: $binary_name${NC}"
         exit 1
@@ -52,19 +52,21 @@ rm "go$ver.linux-amd64.tar.gz"
 
 # 환경 변수 설정
 echo -e "${YELLOW}환경 변수 설정 중...${NC}"
-export STORY_DATA_ROOT="$HOME/.story/story"
-export GETH_DATA_ROOT="$HOME/.story/geth"
 export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin
+export STORY_DATA_ROOT="$HOME/go/bin"
+export GETH_DATA_ROOT="$HOME/go/bin"
 echo "export PATH=$PATH" >> ~/.bash_profile
+echo "export STORY_DATA_ROOT=$STORY_DATA_ROOT" >> ~/.bash_profile
+echo "export GETH_DATA_ROOT=$GETH_DATA_ROOT" >> ~/.bash_profile
 source ~/.bash_profile
 
 # Story-Geth 바이너리 다운로드 및 설치
 echo -e "${YELLOW}Story-Geth 바이너리 다운로드 중...${NC}"
-download_and_install "https://github.com/piplabs/story-geth/archive/refs/tags/v0.9.3.tar.gz" "story-geth-0.9.3.tar.gz" "/root/story-geth-0.9.3/build/bin/geth" "$GETH_DATA_ROOT"
+download_and_install "https://github.com/piplabs/story-geth/archive/refs/tags/v0.9.3.tar.gz" "story-geth-0.9.3.tar.gz" "story-geth" "$HOME/go/bin"
 
 # Story 바이너리 다운로드 및 설치
 echo -e "${YELLOW}Story 바이너리 다운로드 중...${NC}"
-download_and_install "https://story-geth-binaries.s3.us-west-1.amazonaws.com/story-public/story-linux-arm64-0.11.0-aac4bfe.tar.gz" "story-linux-arm64-0.11.0-aac4bfe.tar.gz" "/root/story-linux-arm64-0.11.0-aac4bfe/story" "$STORY_DATA_ROOT"
+download_and_install "https://story-geth-binaries.s3.us-west-1.amazonaws.com/story-public/story-linux-arm64-0.11.0-aac4bfe.tar.gz" "story-linux-arm64-0.11.0-aac4bfe.tar.gz" "story" "$HOME/go/bin"
 
 # Iliad 노드 초기화
 echo -e "${GREEN}노드 초기화 중... 사용할 모니커 이름을 입력해주세요:${NC}"
