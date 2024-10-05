@@ -10,7 +10,7 @@ NC='\033[0m' # 색상 초기화
 function download_and_install {
     local url=$1
     local tar_file=$2
-    local binary_name=$3  # 이 변수는 압축 해제 후의 전체 경로를 포함해야 함
+    local binary_name=$3
     local install_path=$4
 
     # URL에서 파일 다운로드
@@ -29,7 +29,7 @@ function download_and_install {
 
     # 설치 경로 확인 및 생성 후 파일 복사
     [ ! -d "$install_path" ] && mkdir -p $install_path
-    sudo cp $binary_name $install_path  # 여기서 $binary_name은 압축 해제 후의 전체 경로를 포함해야 함
+    sudo cp $binary_name $install_path
     if [ $? -ne 0 ]; then
         echo -e "${RED}파일 복사 실패: $binary_name${NC}"
         exit 1
@@ -52,17 +52,19 @@ rm "go$ver.linux-amd64.tar.gz"
 
 # 환경 변수 설정
 echo -e "${YELLOW}환경 변수 설정 중...${NC}"
+export STORY_DATA_ROOT="$HOME/.story/story"
+export GETH_DATA_ROOT="$HOME/.story/geth"
 export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin
 echo "export PATH=$PATH" >> ~/.bash_profile
 source ~/.bash_profile
 
 # Story-Geth 바이너리 다운로드 및 설치
 echo -e "${YELLOW}Story-Geth 바이너리 다운로드 중...${NC}"
-download_and_install "https://github.com/piplabs/story-geth/archive/refs/tags/v0.9.3.tar.gz" "story-geth-0.9.3.tar.gz" "/root/story-geth-0.9.3/geth" "$HOME/go/bin/story-geth"
+download_and_install "https://github.com/piplabs/story-geth/archive/refs/tags/v0.9.3.tar.gz" "story-geth-0.9.3.tar.gz" "/root/story-geth-0.9.3/build/bin/geth" "$GETH_DATA_ROOT"
 
 # Story 바이너리 다운로드 및 설치
 echo -e "${YELLOW}Story 바이너리 다운로드 중...${NC}"
-download_and_install "https://story-geth-binaries.s3.us-west-1.amazonaws.com/story-public/story-linux-arm64-0.11.0-aac4bfe.tar.gz" "story-linux-arm64-0.11.0-aac4bfe.tar.gz" "/root/story-linux-arm64-0.11.0-aac4bfe/story" "$HOME/go/bin/story"
+download_and_install "https://story-geth-binaries.s3.us-west-1.amazonaws.com/story-public/story-linux-arm64-0.11.0-aac4bfe.tar.gz" "story-linux-arm64-0.11.0-aac4bfe.tar.gz" "/root/story-linux-arm64-0.11.0-aac4bfe/story" "$STORY_DATA_ROOT"
 
 # Iliad 노드 초기화
 echo -e "${GREEN}노드 초기화 중... 사용할 모니커 이름을 입력해주세요:${NC}"
