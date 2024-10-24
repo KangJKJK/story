@@ -64,7 +64,7 @@ sudo systemctl enable story-geth
 
 # 상태 확인
 echo -e "${BOLD}${CYAN}상태 확인 중...${NC}"
-sudo systemctl status story-geth
+sudo systemctl status story-geth | cat
 echo -e "${BOLD}${CYAN}스테이터스를 체크하려면 다음명령어를 입력하세요.${NC}"
 echo -e "${BOLD}${CYAN}'curl localhost:26657/status | jq'${NC}"
 
