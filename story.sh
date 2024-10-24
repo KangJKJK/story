@@ -68,7 +68,7 @@ sudo systemctl status story-geth | cat
 echo -e "${BOLD}${CYAN}스테이터스를 체크하려면 다음명령어를 입력하세요.${NC}"
 echo -e "${BOLD}${CYAN}'curl localhost:26657/status | jq'${NC}"
 
-echo -e "${BOLD}${YELLOW}스냅샷 및 데이터 마이그레이션을 진행합니다. 계속 진행하려면 Enter 키를 누르세요...${NC}"
+echo -e "${BOLD}${YELLOW}스냅샷 및 데이터 마이그레이션을 진행합니다.${NC}"
 # ㄱ. 서비스 중지
 echo -e "${BOLD}${CYAN}서비스 중지 중...${NC}"
 sudo systemctl stop story-geth
