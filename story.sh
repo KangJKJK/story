@@ -1,91 +1,45 @@
 #!/bin/bash
 
-# 색상 정의
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # 색상 초기화
+# 색상 설정
+export RED='\033[0;31m'  # Red
+export GREEN='\033[0;32m'  # Green
+export YELLOW='\033[1;33m'  # Yellow
+export BLUE='\033[0;34m'  # Blue
+export MAGENTA='\033[0;35m'  # Magenta
+export NC='\033[0m'  # No Color
+BOLD=$(tput bold)
+CYAN='\033[0;36m'  # Cyan
 
-# 필수 함수 정의
-function download_and_install {
-    local url=$1
-    local tar_file=$2
-    local binary_name=$3
-    local install_path=$4
 
-    # URL에서 파일 다운로드
-    wget $url -O /root/$tar_file
-    if [ $? -ne 0 ]; then
-        echo -e "${RED}다운로드 실패: $url${NC}"
-        exit 1
-    fi
-
-    # 다운로드 받은 파일 압축 해제
-    tar -xzvf /root/$tar_file -C /root/
-    if [ $? -ne 0 ]; then
-        echo -e "${RED}압축 해제 실패: /root/$tar_file${NC}"
-        exit 1
-    fi
-
-    # 설치 경로 확인 및 생성 후 파일 복사
-    [ ! -d "$install_path" ] && mkdir -p $install_path
-    sudo cp "/root/${tar_file%.tar.gz}/$binary_name" "$install_path"
-    if [ $? -ne 0 ]; then
-        echo -e "${RED}파일 복사 실패: $binary_name${NC}"
-        exit 1
-    fi
-}
-
-# 필수 의존성 업데이트 및 설치
-echo -e "${YELLOW}의존성 설치 중...${NC}"
+# 필요한 패키지 설치
 sudo apt update && sudo apt-get update
-sudo apt install curl git make jq build-essential gcc unzip wget lz4 aria2 pv -y
+sudo apt install curl git make jq build-essential gcc unzip wget lz4 aria2 -y
 
-# Go 언어 설치
-echo -e "${YELLOW}Go 언어 설치 중...${NC}"
-cd $HOME && \
-ver="1.22.0" && \
-wget "https://golang.org/dl/go$ver.linux-amd64.tar.gz" && \
-sudo rm -rf /usr/local/go && \
-sudo tar -C /usr/local -xzf "go$ver.linux-amd64.tar.gz" && \
-rm "go$ver.linux-amd64.tar.gz"
+# Story-Geth 설치
+echo -e "${BOLD}${CYAN}Story-Geth 설치 중...${NC}"
+wget https://story-geth-binaries.s3.us-west-1.amazonaws.com/geth-public/geth-linux-amd64-0.10.0-afaa40a.tar.gz
+tar -xzvf geth-linux-amd64-0.10.0-afaa40a.tar.gz
+mkdir -p $HOME/go/bin
+echo 'export PATH=$PATH:$HOME/go/bin' >> $HOME/.bash_profile
+sudo cp geth-linux-amd64-0.10.0-afaa40a/geth $HOME/go/bin/story-geth
 
-# 환경 변수 설정
-echo -e "${YELLOW}환경 변수 설정 중...${NC}"
-export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin
-export STORY_DATA_ROOT="$HOME/go/bin"
-export GETH_DATA_ROOT="$HOME/go/bin"
-echo "export PATH=$PATH" >> ~/.bash_profile
-echo "export STORY_DATA_ROOT=$STORY_DATA_ROOT" >> ~/.bash_profile
-echo "export GETH_DATA_ROOT=$GETH_DATA_ROOT" >> ~/.bash_profile
+# Story 설치
+echo -e "${BOLD}${CYAN}Story 설치 중...${NC}"
+wget https://story-geth-binaries.s3.us-west-1.amazonaws.com/story-public/story-linux-amd64-0.11.0-aac4bfe.tar.gz
+tar -xzvf story-linux-amd64-0.11.0-aac4bfe.tar.gz
+sudo cp story-linux-amd64-0.11.0-aac4bfe/story $HOME/go/bin/story
+
+# 환경 변수 등록
+echo -e "${BOLD}${CYAN}환경 변수 등록 중...${NC}"
 source ~/.bash_profile
 
-# Story-Geth 바이너리 다운로드 및 설치
-echo -e "${YELLOW}Story-Geth 바이너리 다운로드 중...${NC}"
-download_and_install "https://story-geth-binaries.s3.us-west-1.amazonaws.com/geth-public/geth-linux-arm-0.9.3-b224fdf.tar.gz" "geth-linux-arm-0.9.3-b224fdf.tar.gz" "story-geth" "$HOME/go/bin"
+# Story 설정
+echo -e "${BOLD}${CYAN}Story 설정 중...${NC}"
+read -p "등록할 모니커(밸리데이터명)를 입력하세요: " NODE_NAME
+story init --network iliad --moniker $NODE_NAME
 
-# Story 바이너리 다운로드 및 설치
-echo -e "${YELLOW}Story 바이너리 다운로드 중...${NC}"
-download_and_install "https://story-geth-binaries.s3.us-west-1.amazonaws.com/story-public/story-linux-arm64-0.11.0-aac4bfe.tar.gz" "story-linux-arm64-0.11.0-aac4bfe.tar.gz" "story" "$HOME/go/bin"
-
-# Iliad 노드 초기화
-echo -e "${GREEN}노드 초기화 중... 사용할 모니커 이름을 입력해주세요:${NC}"
-read MONIKER
-story init --network iliad --moniker "$MONIKER"
-
-# 피어 설정
-echo -e "${GREEN}피어 설정 중...${NC}"
-PEERS=$(curl -s -X POST https://rpc-story.josephtran.xyz -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","method":"net_info","params":[],"id":1}' | jq -r '.result.peers[] | select(.connection_status.SendMonitor.Active == true) | "\(.node_info.id)@\(if .node_info.listen_addr | contains("0.0.0.0") then .remote_ip + ":" + (.node_info.listen_addr | sub("tcp://0.0.0.0:"; "")) else .node_info.listen_addr | sub("tcp://"; "") end)"' | tr '\n' ',' | sed 's/,$//' | awk '{print "\"" $0 "\""}')
-sed -i "s/^persistent_peers *=.*/persistent_peers = $PEERS/" "$HOME/.story/story/config/config.toml"
-
-if [ $? -eq 0 ]; then
-    echo -e "${GREEN}새 피어로 설정이 완료되었습니다.${NC}"
-else
-    echo -e "${RED}피어 설정 실패.${NC}"
-fi
-
-# Story-Geth 서비스 파일 생성
-echo -e "${GREEN}Story-Geth 서비스 파일을 생성합니다...${NC}"
+# Story-geth 서비스 설정
+echo -e "${BOLD}${CYAN}Story-geth 서비스 설정 중...${NC}"
 sudo tee /etc/systemd/system/story-geth.service > /dev/null <<EOF
 [Unit]
 Description=Story Geth Client
@@ -102,115 +56,105 @@ LimitNOFILE=4096
 WantedBy=multi-user.target
 EOF
 
-# Story 서비스 파일 생성
-echo -e "${GREEN}Story 서비스 파일을 생성합니다...${NC}"
-sudo tee /etc/systemd/system/story.service > /dev/null <<EOF
-[Unit]
-Description=Story Consensus Client
-After=network.target
+# Story-geth 서비스 등록 및 시작
+echo -e "${BOLD}${CYAN}Story-geth 서비스 등록 및 시작 중...${NC}"
+sudo systemctl daemon-reload
+sudo systemctl start story-geth
+sudo systemctl enable story-geth
 
-[Service]
-User=root
-ExecStart=/root/go/bin/story run
-Restart=on-failure
-RestartSec=3
-LimitNOFILE=4096
+# 상태 확인
+echo -e "${BOLD}${CYAN}상태 확인 중...${NC}"
+sudo systemctl status story-geth
+echo -e "${BOLD}${CYAN}스테이터스를 체크하려면 다음명령어를 입력하세요.${NC}"
+echo -e "${BOLD}${CYAN}'curl localhost:26657/status | jq'${NC}"
 
-[Install]
-WantedBy=multi-user.target
-EOF
+echo -e "${BOLD}${YELLOW}스냅샷 및 데이터 마이그레이션을 진행합니다. 계속 진행하려면 Enter 키를 누르세요...${NC}"
+# ㄱ. 서비스 중지
+echo -e "${BOLD}${CYAN}서비스 중지 중...${NC}"
+sudo systemctl stop story-geth
+sudo systemctl stop story
 
-# Story 및 Story-Geth 서비스 시작
-echo -e "${GREEN}서비스를 시작합니다...${NC}"
+# ㄴ. Validator 정보 백업
+echo -e "${BOLD}${GREEN}Validator 정보 백업중...${NC}"
+sudo cp $HOME/.story/story/data/priv_validator_state.json $HOME/.story/priv_validator_state.json.backup
+
+# ㄷ. 기존 블록 데이터 삭제
+echo -e "${BOLD}${RED}기존 블록데이터 삭제중...${NC}"
+sudo rm -rf $HOME/.story/geth/iliad/geth/chaindata
+sudo rm -rf $HOME/.story/story/data
+
+# ㄹ. 스냅샷 압축파일 다운로드 
+echo -e "${BOLD}${CYAN}스냅샷 파일 다운로드중...${NC}"
+wget -O Geth_snapshot.lz4 https://story.josephtran.co/Geth_snapshot.lz4
+wget -O story_snapshot.lz4 https://snapshots.mandragora.io/story_snapshot.lz4
+
+# ㅁ. 디렉터리에 마이그레이션 진행
+# 이 부분은 한 줄씩 진행하세요. 그리고 결과가 모두 나올 때까지 기다리세요.
+echo -e "${BOLD}${CYAN}마이그레이션을 진행합니다...${NC}"
+lz4 -c -d Geth_snapshot.lz4 | tar -x -C $HOME/.story/geth/iliad/geth
+# 결과가 나올 때까지 기다리세요.
+read -p "첫 번째 마이그레이션이 완료되었습니다. 계속 진행하려면 Enter 키를 누르세요..."
+lz4 -c -d story_snapshot.lz4 | tar -x -C $HOME/.story/story
+# 결과가 나올 때까지 기다리세요.
+read -p "두 번째 마이그레이션이 완료되었습니다. 계속 진행하려면 Enter 키를 누르세요..."
+
+# ㅂ. 압축파일 삭제
+echo -e "${BOLD}${CYAN}압축파일 삭제중...${NC}"
+sudo rm -v Geth_snapshot.lz4
+sudo rm -v story_snapshot.lz4
+
+# ㅅ. Json 파일 복구
+echo -e "${BOLD}${GREEN}Json파일 복구중...${NC}"
+sudo cp $HOME/.story/priv_validator_state.json.backup $HOME/.story/story/data/priv_validator_state.json
+
+# 12) Story-geth 재실행
+echo -e "${BOLD}${CYAN}geth를 재실행합니다...${NC}"
 sudo systemctl daemon-reload && \
-sudo systemctl enable story-geth && \
-sudo systemctl enable story && \
 sudo systemctl start story-geth && \
-sudo systemctl start story
+sudo systemctl enable story-geth && \
+sudo systemctl status story-geth
 
-# 현재 사용 중인 포트 확인
-used_ports=$(netstat -tuln | awk '{print $4}' | grep -o '[0-9]*$' | sort -u)
+# 13) Story 재실행
+echo -e "${BOLD}${CYAN}노드를 재실행합니다...${NC}"
+sudo systemctl daemon-reload && \
+sudo systemctl start story && \
+sudo systemctl enable story && \
+sudo systemctl status story
 
-# 각 포트에 대해 ufw allow 실행
-  for port in $used_ports; do
-    echo -e "${GREEN}포트 ${port}을(를) 허용합니다.${NC}"
-    sudo ufw allow $port/tcp
-  done
-
-# Story-Geth 로그 확인
-sudo journalctl -u story-geth -f -o cat
-
-# Story 로그 확인
-sudo journalctl -u story -f -o cat
-
-# 동기화 상태 확인
-echo -e "${YELLOW}동기화 상태를 확인합니다."Catch_up" : false${NC}"
+# 14) 동기화 상태 확인
+echo -e "${BOLD}${CYAN}동기화 상태를 확인합니다...${NC}"
 curl localhost:26657/status | jq
 
-# 동기화 실행
-sudo systemctl stop story
-sudo systemctl stop story-geth
+# 15) 로그 확인 (한 번만 출력)
+echo -e "${BOLD}${YELLOW}로그 확인 중...${NC}"
+sudo journalctl -u story-geth.service -o cat
+sudo journalctl -u story.service -o cat
 
-echo -e "${YELLOW}Geth-data를 다운로드 합니다.${NC}"
-cd $HOME
-rm -f Geth_snapshot.lz4
-if curl -s --head https://vps6.josephtran.xyz/Story/Geth_snapshot.lz4 | head -n 1 | grep "200" > /dev/null; then
-    echo "Snapshot found, downloading..."
-    aria2c -x 16 -s 16 https://vps6.josephtran.xyz/Story/Geth_snapshot.lz4 -o Geth_snapshot.lz4
-else
-    echo "No snapshot found."
-fi
 
-echo -e "${YELLOW}스토리 데이터를 다운로드 합니다.${NC}"
-cd $HOME
-rm -f Story_snapshot.lz4
-if curl -s --head https://vps6.josephtran.xyz/Story/Story_snapshot.lz4 | head -n 1 | grep "200" > /dev/null; then
-    echo "Snapshot found, downloading..."
-    aria2c -x 16 -s 16 https://vps6.josephtran.xyz/Story/Story_snapshot.lz4 -o Story_snapshot.lz4
-else
-    echo "No snapshot found."
-fi
+echo -e "${BOLD}${CYAN}https://passport.gitcoin.co/#/dashboard${NC}"
+read -p "위 사이트에 접속하여 humanity 스코어를 10점이상 쌓으세요(엔터)"
+echo -e "${BOLD}${CYAN}https://faucet.story.foundation/${NC}"
+read -p "위 사이트에 접속하여 Faucet을 받아주세요(엔터)"
+read -p "Faucet을 받으신 후 총 2IP를 모아서 Validator 월렛에 전송하세요(엔터)"
 
-# priv_validator_state.json 백업
-mv $HOME/.story/story/data/priv_validator_state.json $HOME/.story/priv_validator_state.json.backup
-
-# 오래된 데이터 제거
-rm -rf ~/.story/story/data
-rm -rf ~/.story/geth/iliad/geth/chaindata
-
-# 스토리 데이터 추출
-sudo mkdir -p /root/.story/story/data
-lz4 -d Story_snapshot.lz4 | pv | sudo tar xv -C /root/.story/story/
-
-# Geth-data 추출
-sudo mkdir -p /root/.story/geth/iliad/geth/chaindata
-lz4 -d Geth_snapshot.lz4 | pv | sudo tar xv -C /root/.story/geth/iliad/geth/
-
-# priv_validator_state.json을 다시 이동합니다.
-mv $HOME/.story/priv_validator_state.json.backup $HOME/.story/story/data/priv_validator_state.json
-
-#노드 재시작
-sudo systemctl start story
-sudo systemctl start story-geth
-
-# 사용자로부터 private key 입력 받기
+echo -e "${BOLD}${CYAN}밸리데이터 프라이빗키를 따로 저장해두세요.${NC}"
+# EVM 키 내보내기
 story validator export --export-evm-key
-echo -e "${YELLOW}Private key를 입력해주세요:${NC}"
-read PRIVATE_KEY
-echo "$PRIVATE_KEY" > $HOME/.story/story/config/private_key.txt
+# 프라이빗 키 확인
+sudo cat /root/.story/story/config/private_key.txt
+read -p "출력된 프라이빗키를 입력하세요: " privatekey
+export privatekey
+story validator create --stake 1464843750000000000 --private-key "$privatekey"
 
-# Validator 등록을 위한 프라이빗 키 입력 및 저장
-echo -e "${YELLOW}Validator 프라이빗 키를 입력해주세요:${NC}"
-read VALIDATOR_KEY
-echo "$VALIDATOR_KEY" > $HOME/.story/story/config/priv_validator_key.json
+read -p "출력된 프라이빗키를 메타마스크에 추가하세요.(엔터)"
+read -p "해당 월렛에 2IP이상을 전송하세요.(엔터)"
 
-# Validator 등록
-echo -e "${GREEN}Validator등록을 위해 최소 1개의 IP가 월렛에 있어야합니다.${NC}"
-echo -e "${GREEN}해당사이트에서 faucet을 받아주세요: https://faucet.story.foundation/${NC}"
-story validator create --stake 1000000000000000000 --private-key $PRIVATE_KEY
+echo -e "${BOLD}${CYAN}밸리데이터 등록을 확인합니다.${NC}"
+sudo cat /root/.story/story/config/priv_validator_key.json
+read -p "출력된 address를 저장해두세요.(엔터)"
+echo -e "${BOLD}${CYAN}1.해당 사이트에 접속하세요: https://testnet.story.explorers.guru/validators${NC}"
+echo -e "${BOLD}${CYAN}2.검색에 address를 입력하시고 validator 닉네임을 복사하세요${NC}"
+echo -e "${BOLD}${CYAN}3.Validator List에서 inactive를 선택하시고 valdator 닉네임을 검색하세요${NC}"
 
-# Validator 정보
-curl -s localhost:26657/status | jq -r '.result.validator_info' 
-
-echo -e "${GREEN}모든 작업이 완료되었습니다. 컨트롤+A+D로 스크린을 종료해주세요.${NC}"
-echo -e "${GREEN}스크립트 작성자: https://t.me/kjkresearch${NC}"
+echo -e "${GREEN}모든 작업이 완료되었습니다. 컨트롤+A+D로 스크린을 분리해주세요.${NC}"
+echo -e "${GREEN}스크립트작성자-https://t.me/kjkresearch${NC}"
