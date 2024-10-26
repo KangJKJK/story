@@ -119,7 +119,7 @@ echo -e "${BOLD}${CYAN}노드를 재실행합니다...${NC}"
 sudo systemctl daemon-reload && \
 sudo systemctl start story && \
 sudo systemctl enable story && \
-sudo systemctl status story
+sudo systemctl status story-geth | cat
 
 # 14) 동기화 상태 확인
 echo -e "${BOLD}${CYAN}동기화 상태를 확인합니다...${NC}"
